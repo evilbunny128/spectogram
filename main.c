@@ -1,12 +1,13 @@
 #include <stdio.h>
-#include <alsa/asoundlib.h>
-#include <math.h>
 #include <stdlib.h>
-#include <SDL2/SDL.h>
-#include <complex.h>
-#include <time.h>
 
-#define ALSA_PCM_NEW_HW_PARAMS_API
+#include <math.h>
+#include <complex.h>
+
+#include <SDL2/SDL.h>
+
+#include <pulse/simple.h>
+#include <pulse/error.h>
 
 #define SAMPLE_RATE 48000
 #define N_SAMPLES 1024
@@ -25,32 +26,48 @@ float *make_frequency_space(float base_frequency);
 
 // Do I need to use a radically higher sampling rate to get good resolution for my fourier transform?
 int main(void) {
-  // test setup to see if frequency f is detected properly
-  float f;
-  printf("What frequency should the algorithm try to re-create: ");
-  if (scanf("%f", &f) != 1) {
-    fprintf(stderr, "could not read user input test frequency\n");
-    exit(0);
-  }
-
   float* fs = make_frequency_space(52.5);
   float complex *ft_matrix = create_ft_matrix(fs);
-  // make example signal
-  float *buf = malloc(N_SAMPLES * sizeof(float));
-  for (int t_idx = 0; t_idx < N_SAMPLES; t_idx++) {
-    buf[t_idx] = cos(2 * M_PI * ((float)t_idx / SAMPLE_RATE) * f);
-  }
+  float* freq_amplitudes = malloc(N_FREQUENCIES * sizeof(float));
 
   
-  float* freq_amplitudes = malloc(N_FREQUENCIES * sizeof(float));
-  clock_t start = clock();
-  find_frequency_amplitudes(buf, ft_matrix, freq_amplitudes);
-  clock_t end = clock();
-  for (int f_idx = 0; f_idx < N_FREQUENCIES; f_idx++) {
-    printf("frequency component %.1f magnitude: \t%.4f\n", fs[f_idx], freq_amplitudes[f_idx]);
+  // Specify sound format & create loopback device we can read from
+  static const pa_sample_spec ss = {
+    .format = PA_SAMPLE_FLOAT32LE,
+    .rate = SAMPLE_RATE,
+    .channels = 1
+  };
+  pa_simple *s;
+  int error;
+  s = pa_simple_new(NULL, "Spectogram",
+		    PA_STREAM_RECORD, NULL,
+		    "System sound output", &ss,
+		    NULL, NULL, &error);
+  if (!s) {
+    fprintf(stderr, "pa_simple_new() failed: %s\n", pa_strerror(error));
+    pa_simple_free(s);
+    return 1;
   }
-  printf("---\n  Time to compute fourier transform: %fms\n", 1000 * (float)(end - start) / CLOCKS_PER_SEC);
 
+  // TODO: setup window to render in
+
+  float* buf = malloc(N_SAMPLES * sizeof(float));
+  while (1) {
+    if (pa_simple_read(s, buf, N_SAMPLES * sizeof(float), &error) < 0) {
+      fprintf(stderr, __FILE__": pa_simple_read() failed: %s\n", pa_strerror(error));
+      goto finish;
+    }
+
+    find_frequency_amplitudes(buf, ft_matrix, freq_amplitudes);
+    // TODO: Render graphically
+  }
+  
+  // put inside loop
+  find_frequency_amplitudes(buf, ft_matrix, freq_amplitudes);
+
+finish:
+  free(buf);
+  pa_simple_free(s);
   free(freq_amplitudes);
   free(fs);
   free(ft_matrix);

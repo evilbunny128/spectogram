@@ -1,2 +1,2 @@
 all:
-	gcc main.c -o main -lasound -lm -lSDL2 -O2 -ftree-vectorize
+	gcc main.c -o main -lpulse -lpulse-simple -lm -lSDL2 -O2 -ftree-vectorize
