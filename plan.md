@@ -8,8 +8,9 @@ to reserch:
 
 # TODO
 
-- [ ] Create window
-- [ ] Make window re-sizable
-- [ ] make visualization function
-- [ ] for smooth video, record shorter buffers and "interpolate"
-
+- [x] Create window
+- [x] Make window re-sizable
+- [x] make visualization function
+- [x] for smooth video, record shorter buffers and "interpolate"
+- [ ] Check how I can better set default input source for capture device I've created. 
+Not a big deal since I can change it with _pavucontrol_.
