@@ -14,8 +14,8 @@
 #include <pulse/error.h>
 
 #define SAMPLE_RATE 48000
-#define N_SAMPLES 2048
-#define N_FREQUENCIES 100
+#define N_SAMPLES 4096
+#define N_FREQUENCIES 120
 #define LISTENING_LENGTH 256
 
 // given as one array with base frequencies stored in frequencies.
